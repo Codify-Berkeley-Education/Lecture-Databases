@@ -4,6 +4,8 @@ import { createClient } from "@libsql/client";
 import { usersTable, postsTable, userPostsTable } from "./solution/schema";
 import * as schema from "./solution/schema";
 import { eq } from "drizzle-orm";
+
+//* Change to SOLUTION_DB_FILE_NAME to use the solution database
 const client = createClient({ url: process.env.DB_FILE_NAME! });
 export const db = drizzle(client, { schema });
 
