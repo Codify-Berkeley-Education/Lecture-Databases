@@ -3,12 +3,18 @@
   "module": "index.ts",
   "type": "module",
   "scripts": {
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:generate:solution": "drizzle-kit generate --config=drizzle-solution.config.ts",
+    "db:migrate:solution": "drizzle-kit migrate --config=drizzle-solution.config.ts",
+    "db:push:solution": "drizzle-kit push --config=drizzle-solution.config.ts",
+    "db:studio:solution": "drizzle-kit studio --config=drizzle-solution.config.ts",
+    "db:seed:solution": "bun run solution/seed.ts",
+    "db:generate:starter": "drizzle-kit generate --config=drizzle-starter.config.ts",
+    "db:migrate:starter": "drizzle-kit migrate --config=drizzle-starter.config.ts",
+    "db:push:starter": "drizzle-kit push --config=drizzle-starter.config.ts",
+    "db:studio:starter": "drizzle-kit studio --config=drizzle-starter.config.ts"
   },
   "devDependencies": {
+    "@biomejs/biome": "1.9.4",
     "@types/bun": "^1.1.11",
     "drizzle-kit": "^0.26.2"
   },
@@ -19,6 +25,7 @@
     "@faker-js/faker": "^9.0.3",
     "@libsql/client": "^0.14.0",
     "dotenv": "^16.4.5",
-    "drizzle-orm": "^0.35.3"
+    "drizzle-orm": "^0.35.3",
+    "ulid": "^2.3.0"
   }
 }

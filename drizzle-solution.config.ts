@@ -1,14 +1,13 @@
 import "dotenv/config";
 import { defineConfig } from "drizzle-kit";
 
+//* Config file for solution code
 export default defineConfig({
 	out: "./drizzle",
-	//* Change to starter schema to use your own schema
-	// schema: "./starter/schema.ts",
 	schema: "./solution/schema.ts",
 	dialect: "sqlite",
 	dbCredentials: {
-		url: process.env.DB_FILE_NAME as string,
+		url: process.env.SOLUTION_DB_FILE_NAME as string,
 	},
 	verbose: true,
 });
