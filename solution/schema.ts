@@ -3,9 +3,11 @@ import {
   sqliteTable,
   text,
   uniqueIndex,
+  index,
   primaryKey,
+  real,
 } from "drizzle-orm/sqlite-core";
-import { sql, relations } from "drizzle-orm";
+import { sql, relations, type SQL } from "drizzle-orm";
 import { ulid } from "ulid";
 
 const createPrefixedUlid = (prefix: string) => {
@@ -20,14 +22,13 @@ export const users = sqliteTable(
       .primaryKey()
       .$defaultFn(() => createPrefixedUlid("user")),
     name: text().notNull(),
-    // If we wanted age to be required only for verified users, this constraint would have to be enforced in the application layer
-    idVerified: int({ mode: "boolean" }).notNull().default(false),
     age: int(),
     email: text().notNull(),
   },
   (users) => ({
     // Index for fast querying users by email
     emailIndex: uniqueIndex("users_email_idx").on(users.email),
+    nameIndex: index("user_name_index").on(users.name),
   }),
 );
 
@@ -35,9 +36,10 @@ export const userSettings = sqliteTable("user_settings", {
   id: text()
     .primaryKey()
     .$defaultFn(() => createPrefixedUlid("settings")),
-  userId: int()
+  userId: text()
     .notNull()
-    .references(() => users.id),
+    .references(() => users.id)
+    .unique(),
   theme: text().notNull().default("light"),
 });
 
@@ -48,6 +50,11 @@ export const posts = sqliteTable("posts", {
     .$defaultFn(() => createPrefixedUlid("post")),
   title: text().notNull(),
   content: text().notNull(),
+  estimatedReadingLength: real().generatedAlwaysAs(
+    (): SQL => sql`(LENGTH(${posts.content}) * 1.0) / 863`,
+    { mode: "stored" },
+  ),
+  // Automatically set and updating createdAd and updatedAt columns
   createdAt: int({ mode: "number" }).notNull().default(sql`(unixepoch())`),
   updatedAt: int({ mode: "number" }).$onUpdate(() => sql`(unixepoch())`),
 });
