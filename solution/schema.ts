@@ -63,10 +63,10 @@ export const posts = sqliteTable("posts", {
 export const userPostsTable = sqliteTable(
   "user_posts_table",
   {
-    userId: int()
+    userId: text()
       .notNull()
       .references(() => users.id),
-    postId: int()
+    postId: text()
       .notNull()
       .references(() => posts.id),
   },
@@ -80,10 +80,10 @@ export const comments = sqliteTable("comments", {
   id: text()
     .primaryKey()
     .$defaultFn(() => createPrefixedUlid("comment")),
-  postId: int()
+  postId: text()
     .notNull()
     .references(() => posts.id),
-  authorId: int()
+  authorId: text()
     .notNull()
     .references(() => users.id),
   content: text().notNull(),

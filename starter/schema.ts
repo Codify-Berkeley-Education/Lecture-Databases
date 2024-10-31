@@ -2,10 +2,10 @@ import {
   int,
   sqliteTable,
   text,
-  index,
-  real,
   uniqueIndex,
+  index,
   primaryKey,
+  real,
 } from "drizzle-orm/sqlite-core";
 import { sql, relations, type SQL } from "drizzle-orm";
 import { ulid } from "ulid";
