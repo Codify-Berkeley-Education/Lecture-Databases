@@ -44,20 +44,27 @@ export const userSettings = sqliteTable("user_settings", {
 });
 
 // Posts table
-export const posts = sqliteTable("posts", {
-  id: text()
-    .primaryKey()
-    .$defaultFn(() => createPrefixedUlid("post")),
-  title: text().notNull(),
-  content: text().notNull(),
-  estimatedReadingLength: real().generatedAlwaysAs(
-    (): SQL => sql`(LENGTH(${posts.content}) * 1.0) / 863`,
-    { mode: "stored" },
-  ),
-  // Automatically set and updating createdAd and updatedAt columns
-  createdAt: int({ mode: "number" }).notNull().default(sql`(unixepoch())`),
-  updatedAt: int({ mode: "number" }).$onUpdate(() => sql`(unixepoch())`),
-});
+export const posts = sqliteTable(
+  "posts",
+  {
+    id: text()
+      .primaryKey()
+      .$defaultFn(() => createPrefixedUlid("post")),
+    title: text().notNull(),
+    content: text().notNull(),
+    views: int().notNull().default(0),
+    estimatedReadingLength: real().generatedAlwaysAs(
+      (): SQL => sql`(LENGTH(${posts.content}) * 1.0) / 863`,
+      { mode: "stored" },
+    ),
+    // Automatically set and updating createdAd and updatedAt columns
+    createdAt: int({ mode: "number" }).notNull().default(sql`(unixepoch())`),
+    updatedAt: int({ mode: "number" }).$onUpdate(() => sql`(unixepoch())`),
+  },
+  (posts) => ({
+    createdAtIndex: index("posts_created_at_index").on(posts.createdAt),
+  }),
+);
 
 // userPosts join table supports many-to-many relationship between users and posts, as a post may have multiple authors and an author may have multiple posts
 export const userPostsTable = sqliteTable(
