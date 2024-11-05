@@ -57,7 +57,7 @@ export const posts = sqliteTable(
       (): SQL => sql`(LENGTH(${posts.content}) * 1.0) / 863`,
       { mode: "stored" },
     ),
-    // Automatically set and updating createdAd and updatedAt columns
+    // Automatically set and updating createdAd and updatedAt columns to unix epoch time in seconds
     createdAt: int({ mode: "number" }).notNull().default(sql`(unixepoch())`),
     updatedAt: int({ mode: "number" }).$onUpdate(() => sql`(unixepoch())`),
   },

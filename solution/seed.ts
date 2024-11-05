@@ -27,6 +27,7 @@ const seed = async () => {
       posts.push({
         title: faker.lorem.sentence(),
         content: faker.lorem.paragraph(),
+        views: Math.floor(Math.random() * 100),
       });
     }
     const postResults = await db.insert(postsSchema).values(posts).returning();

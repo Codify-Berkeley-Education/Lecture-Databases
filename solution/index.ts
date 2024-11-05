@@ -3,7 +3,17 @@ import { drizzle } from "drizzle-orm/libsql";
 import { createClient } from "@libsql/client";
 import { users, posts, userPostsTable, comments, userSettings } from "./schema";
 import * as schema from "./schema";
-import { eq, asc, desc, type InferInsertModel, lt, gt, sql } from "drizzle-orm";
+import {
+  eq,
+  asc,
+  desc,
+  type InferInsertModel,
+  lt,
+  gt,
+  sql,
+  sum,
+} from "drizzle-orm";
+import { union } from "drizzle-orm/sqlite-core";
 
 const client = createClient({ url: process.env.SOLUTION_DB_FILE_NAME! });
 export const db = drizzle(client, {
@@ -157,6 +167,7 @@ const getPostsByUser = async (userId: string) => {
 };
 
 //* Queries
+// Basic example
 const getPostWithCommentsQuery = async (postId: string) => {
   const postsWithComments = await db.query.posts.findFirst({
     where: eq(posts.id, postId),
@@ -167,18 +178,54 @@ const getPostWithCommentsQuery = async (postId: string) => {
   return postsWithComments;
 };
 
-//* Transaction Example
+// Full Advanced Example
 
 //* Aggregations
+// Can either execute arbitrary SQL or use built in helpers: https://orm.drizzle.team/docs/select#aggregations-helpers
+
 // Summing up the views of all posts created in the past day
+const totalViewsPastDay = async () => {
+  const [totalViews] = await db
+    .select({ values: sum(posts.views) })
+    .from(posts)
+    .where(gt(posts.createdAt, Math.floor(Date.now() / 1000) - 24 * 60 * 60));
+
+  if (!totalViews) {
+    throw new Error("No posts found");
+  }
+  // Cast the result to a number
+  return Number(totalViews.values);
+};
 
 // Getting a count of the total number of posts created in the past week, use drizzle $count operator: https://orm.drizzle.team/docs/select#count
 const usersSignedUpPastWeek = async () => {
   const count = await db.$count(
     posts,
-    gt(posts.createdAt, Date.now() - 7 * 24 * 60 * 60 * 1000),
+    gt(posts.createdAt, Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60),
   );
   return count;
 };
 
-//
+//* Unions
+// https://orm.drizzle.team/docs/set-operations#union
+
+// Get recent activity for a user (their posts and comments)
+// powers something like this: https://github.com/aidansunbury?tab=overview&from=2024-10-01&to=2024-10-31
+const getUserActivity = async (userId: string) => {
+  const activity = await union(
+    db
+      .select({ author: userPostsTable.userId })
+      .from(userPostsTable)
+      .where(eq(userPostsTable.userId, userId)),
+    db
+      .select({ author: comments.authorId })
+      .from(comments)
+      .where(eq(comments.authorId, userId)),
+  );
+};
+
+// You're the semicolon to my code, you make everything complete <3
+
+// Are you a repository? Because I'm ready to commit ;)
+
+//* Transaction
