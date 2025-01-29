@@ -1,15 +1,32 @@
 import "dotenv/config";
 import { drizzle } from "drizzle-orm/libsql";
 import { createClient } from "@libsql/client";
+import { users, posts, userPostsTable, comments, userSettings } from "./schema";
 import * as schema from "./schema";
-import { users, posts, userPostsTable, comments } from "./schema";
-import { eq, gt, lt, or, and } from "drizzle-orm";
+import {
+  eq,
+  asc,
+  desc,
+  type InferInsertModel,
+  lt,
+  gt,
+  sql,
+  sum,
+  and,
+} from "drizzle-orm";
+import { union } from "drizzle-orm/sqlite-core";
+// Not all imports may be used
 
-// Database connection
-const client = createClient({ url: process.env.DB_FILE_NAME! });
-export const db = drizzle(client, {
-  schema,
-  logger: true,
-});
+//* Selects
 
-// TODO write queries here
+//* Inserts and Updates
+
+//* Delete
+
+//* Joins
+
+//* Queries
+
+//* Aggregations
+
+//* Transaction (Lecture 10)

@@ -72,7 +72,7 @@ export const userPostsTable = sqliteTable(
   {
     userId: text()
       .notNull()
-      .references(() => users.id),
+      .references(() => users.id, { onDelete: "cascade" }), // When a user is deleted, remove their authorship on posts
     postId: text()
       .notNull()
       .references(() => posts.id),
@@ -92,7 +92,7 @@ export const comments = sqliteTable("comments", {
     .references(() => posts.id),
   authorId: text()
     .notNull()
-    .references(() => users.id),
+    .references(() => users.id, { onDelete: "cascade" }), // When a user is deleted, remove their comments
   content: text().notNull(),
 });
 

@@ -14,6 +14,18 @@ This will create a starter and solution database in the `starter` and `solution`
 
 All scripts in the package.json have either a `starter` or `solution` suffix to indicate which database they are running on.
 
+To push your schema to the database, run:
+```bash
+bun db:push:starter # For starter database
+bun db:push:solution # For solution database
+```
+
+Once you have a schema, you can also run a the provided seed script for either the starter or solution database.
+```bash
+bun starter/seed.ts # For solution database
+bun solution/seed.ts # For starter database
+```
+
 ## Lecture 8: Relational Data Modeling
 
 Create a data model for a blogging platform.
@@ -28,4 +40,4 @@ planet scale mysql course: https://planetscale.com/learn/courses/mysql-for-devel
 
 ## Lecture 10: Advanced Operations
 
-Perform advanced operations on the database, and ensure maximum TypeScript compatibility.
+Learn advanced database topics: foreign key actions, transactions, and migrations.

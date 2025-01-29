@@ -12,6 +12,7 @@ import {
   gt,
   sql,
   sum,
+  and,
 } from "drizzle-orm";
 import { union } from "drizzle-orm/sqlite-core";
 
@@ -46,7 +47,7 @@ const getPostsAlphabetically = async () => {
   const sortedPosts = db
     .select()
     .from(posts)
-    .orderBy(asc(posts.title), asc(posts.id)); // If two posts have the same title, order by id, ensuring a deterministic order
+    .orderBy(asc(posts.title), asc(posts.id)); // If two posts have the same title, order by id, ensuring a deterministic
   return sortedPosts;
 };
 
@@ -76,7 +77,6 @@ const getPostsPaginatedOptimized = async (
 };
 
 //* Inserts and Updates
-
 // Basic Insert with returning
 const insertUser = async (newUser: InferInsertModel<typeof users>) => {
   const [insertedUser] = await db.insert(users).values(newUser).returning();
@@ -110,7 +110,7 @@ const setOrUpdateSettings = async (userId: string, theme: "light" | "dark") => {
 // Batch Insert
 // Simply pass in an array of users to insert instead of a single user
 const insertUsers = async (newUsers: InferInsertModel<typeof users>[]) => {
-  const insertedUsers = await db.insert(users).values(newUsers).returning();
+  const insertedUsers = db.insert(users).values(newUsers).returning();
   return insertedUsers;
 };
 
@@ -118,7 +118,7 @@ const insertUsers = async (newUsers: InferInsertModel<typeof users>[]) => {
 const recordPostView = async (postId: string) => {
   return db
     .update(posts)
-    .set({ views: sql`${posts.views} + 1` })
+    .set({ views: sql`${posts.views} + 1` }) // Increment the views by one
     .where(eq(posts.id, postId))
     .returning();
 };
@@ -133,10 +133,9 @@ const deleteUser = async (id: string) => {
 };
 
 //* Joins
-
 // Left and Right Joins
 const getPostWithComments = async (postId: string) => {
-  const postWithComments = await db
+  const postWithComments = db
     .select()
     .from(posts)
     .leftJoin(comments, eq(posts.id, comments.postId))
@@ -147,7 +146,7 @@ const getPostWithComments = async (postId: string) => {
 // Inner Join
 // Select only the users that have settings associated with them
 const usersWithSettings = async () => {
-  const usersWithSettings = await db
+  const usersWithSettings = db
     .select()
     .from(users)
     .innerJoin(userSettings, eq(users.id, userSettings.userId));
@@ -156,7 +155,7 @@ const usersWithSettings = async () => {
 
 // Many to many join
 const getPostsByUser = async (userId: string) => {
-  const postsByUser = await db
+  const postsByUser = db
     .select()
     .from(userPostsTable)
     .innerJoin(posts, eq(userPostsTable.postId, posts.id))
@@ -169,7 +168,7 @@ const getPostsByUser = async (userId: string) => {
 //* Queries
 // Basic example
 const getPostWithCommentsQuery = async (postId: string) => {
-  const postsWithComments = await db.query.posts.findFirst({
+  const postsWithComments = db.query.posts.findFirst({
     where: eq(posts.id, postId),
     with: {
       comments: true,
@@ -179,6 +178,27 @@ const getPostWithCommentsQuery = async (postId: string) => {
 };
 
 // Full Advanced Example
+const getPostAuthors = async (postId: string) => {
+  const postAuthors = db.query.posts.findFirst({
+    where: eq(posts.id, postId),
+    with: {
+      authors: {
+        // Sort returned authors
+        orderBy: [desc(userPostsTable.userId)],
+
+        // Exclude columns
+        columns: {
+          postId: false,
+          userId: false,
+        },
+        with: {
+          user: true,
+        },
+      },
+    },
+  });
+  return postAuthors;
+};
 
 //* Aggregations
 // Can either execute arbitrary SQL or use built in helpers: https://orm.drizzle.team/docs/select#aggregations-helpers
@@ -199,33 +219,52 @@ const totalViewsPastDay = async () => {
 
 // Getting a count of the total number of posts created in the past week, use drizzle $count operator: https://orm.drizzle.team/docs/select#count
 const usersSignedUpPastWeek = async () => {
-  const count = await db.$count(
+  const count = db.$count(
     posts,
     gt(posts.createdAt, Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60),
   );
   return count;
 };
 
-//* Unions
+//* Unions (Not covered in lecture)
 // https://orm.drizzle.team/docs/set-operations#union
 
 // Get recent activity for a user (their posts and comments)
-// powers something like this: https://github.com/aidansunbury?tab=overview&from=2024-10-01&to=2024-10-31
+// Could power something like this: https://github.com/aidansunbury?tab=overview&from=2024-10-01&to=2024-10-31
+// Where varying data types create a unified feed
 const getUserActivity = async (userId: string) => {
   const activity = await union(
     db
-      .select({ author: userPostsTable.userId })
+      .select({ itemId: userPostsTable.postId, content: posts.title })
       .from(userPostsTable)
+      .innerJoin(posts, eq(userPostsTable.postId, posts.id))
       .where(eq(userPostsTable.userId, userId)),
     db
-      .select({ author: comments.authorId })
+      .select({ itemId: comments.id, content: comments.content })
       .from(comments)
       .where(eq(comments.authorId, userId)),
   );
+  return activity;
 };
 
-// You're the semicolon to my code, you make everything complete <3
-
-// Are you a repository? Because I'm ready to commit ;)
-
 //* Transaction
+// When creating a post, we want to ensure that it is assigned one or more authors
+// Either the post and the join table field connecting author(s) to the post should be created, or the whole transaction should fail
+const createPost = async (
+  authorIds: string[],
+  post: InferInsertModel<typeof posts>,
+) => {
+  const result = db.transaction(async (trx) => {
+    const [newPost] = await trx.insert(posts).values(post).returning();
+    const authors = authorIds.map((id) => ({ userId: id, postId: newPost.id }));
+    const createdAuthors = await trx
+      .insert(userPostsTable)
+      .values(authors)
+      .returning();
+    return {
+      post: newPost,
+      authors: createdAuthors,
+    };
+  });
+  return result;
+};
