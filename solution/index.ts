@@ -268,3 +268,107 @@ const createPost = async (
   });
   return result;
 };
+
+// The following uses the code
+(async () => {
+  const allUsers = await db.select().from(users);
+  if (allUsers.length === 0) {
+    console.log("No users found. Please run the seed script.");
+    return;
+  }
+  const validUserId = allUsers[0].id;
+
+  // 1. Basic select: Get user by ID
+  const user = await getUser(validUserId);
+  console.log("User:", user);
+
+  // 2. Partial select: Get user's name only
+  const userNameResult = await getUserName(validUserId);
+  console.log("User's Name:", userNameResult);
+
+  // 3. Ordering: Get posts sorted alphabetically
+  const sortedPosts = await getPostsAlphabetically();
+  console.log("Alphabetically Sorted Posts:", sortedPosts);
+
+  // 4. Limit & Offset: Paginated posts (Page 0, 5 per page)
+  const paginatedPosts = await getPostsPaginated(0, 5);
+  console.log("Paginated Posts (Page 0, 5 per page):", paginatedPosts);
+
+  // 5. Keyset Pagination: Get posts after a timestamp (if available)
+  if (sortedPosts.length > 0) {
+    const afterTimestamp = sortedPosts[0].createdAt;
+    const keysetPosts = await getPostsPaginatedOptimized(5, afterTimestamp);
+    console.log("Keyset Paginated Posts:", keysetPosts);
+  }
+
+  // 6. Aggregation: Total views of posts in the past day
+  const totalViews = await totalViewsPastDay();
+  console.log("Total Views (Past Day):", totalViews);
+
+  // 7. Aggregation: Count of posts in the past week
+  const postsCount = await usersSignedUpPastWeek();
+  console.log("Posts Count (Past Week):", postsCount);
+
+  // 8. Join: Get comments for the first post (if available)
+  if (sortedPosts.length > 0) {
+    const postComments = await getPostWithComments(sortedPosts[0].id);
+    console.log(`Comments for Post ID ${sortedPosts[0].id}:`, postComments);
+  }
+
+  // 9. Many-to-Many Join: Get posts authored by the user
+  const postsByUser = await getPostsByUser("user_01JQW33JE8T7GABPXNW70WYKQS");
+  console.log("Posts by User:", postsByUser);
+
+  // 10. Query API: Get a post with its comments (if a post exists)
+  if (sortedPosts.length > 0) {
+    const postWithComments = await getPostWithCommentsQuery(sortedPosts[0].id);
+    console.log("Post with Comments (Query API):", postWithComments);
+  }
+
+  // 11. Transaction: Create a new post with the user as the author
+  const newPostData = {
+    title: "New Transaction Post",
+    content: "This post was created within a transaction.",
+    views: 0,
+    createdAt: Math.floor(Date.now() / 1000),
+    updatedAt: Math.floor(Date.now() / 1000),
+  };
+  const newPostTxResult = await createPost(["user_01JQW33JE8T7GABPXNW70WYKQS"], newPostData);
+  console.log("New Post Transaction Result:", newPostTxResult);
+
+  // 12. Union Query: Get a unified activity feed for the user (posts & comments)
+  const activityFeed = await getUserActivity("user_01JQW33JE8T7GABPXNW70WYKQS");
+  console.log("User Activity Feed:", activityFeed);
+
+  // 13. Update: Change email of the user
+  const updatedUser = await changeEmail("user_01JQW33JE8T7GABPXNW70WYKQS", "updated@example.com");
+  console.log("Updated User Email:", updatedUser);
+
+  // 14. Upsert: Set or update user settings (e.g., theme to 'dark')
+  const updatedSettings = await setOrUpdateSettings("user_01JQW33JE8T7GABPXNW70WYKQS", "dark");
+  console.log("Updated User Settings:", updatedSettings);
+
+  // 15. Batch Insert: Insert multiple new users
+  const newUsers = await insertUsers([
+    { name: "New User 1", email: "new1@example.com" },
+    { name: "New User 2", email: "new2@example.com" },
+  ]);
+  console.log("Batch Inserted Users:", newUsers);
+
+  // 16. Update without fetch: Increment views for a post (if available)
+  if (sortedPosts.length > 0) {
+    const updatedPostView = await recordPostView(sortedPosts[0].id);
+    console.log("Updated Post View for first post:", updatedPostView);
+  }
+
+  // 17. Delete: Remove a user (if more than one user exists)
+  if (allUsers.length > 1) {
+    const deletedUser = await deleteUser(allUsers[1].id);
+    console.log("Deleted User:", deletedUser);
+  }
+
+  // 18. Inner Join: Get users that have settings associated with them
+  const usersWithSettingsRes = await usersWithSettings();
+  console.log("Users with Settings (Inner Join):", usersWithSettingsRes);
+})();
+
